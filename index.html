@@ -29,12 +29,23 @@ max-width:500px;
 font-size:30px;
 }
 
+#radarCanvas{
+margin:20px auto;
+display:block;
+border-radius:50%;
+border:1px solid #00ff88;
+background:#031108;
+box-shadow:0 0 20px #00ff8844;
+}
+
 </style>
 
 </head>
 <body>
 
-<h1>KAZTHOR RADAR CLOUD</h1>
+<h1>SYSTEM RADAR CLOUD</h1>
+
+<canvas id="radarCanvas" width="300" height="300"></canvas>
 
 <div class="card">
 <div>PIR</div>
@@ -58,7 +69,21 @@ font-size:30px;
 
 <script>
 
+const canvas =
+document.getElementById("radarCanvas");
 
+const ctx =
+canvas.getContext("2d");
+
+const CX = 150;
+const CY = 150;
+const R  = 140;
+
+let lastAngle = 0;
+let lastDist = 999;
+
+
+// MQTT
 const client = mqtt.connect(
 
 'wss://0d6666edf86b49058c829f4e72fa5d76.s1.eu.hivemq.cloud:8884/mqtt',
@@ -85,13 +110,13 @@ client.subscribe(
 
 client.on('message',(topic,msg)=>{
 
-const d=
-JSON.parse(
-msg.toString()
-);
+const d =
+JSON.parse(msg.toString());
 
-document.getElementById("pir").innerHTML=
-d.pir;
+lastAngle = d.angle;
+lastDist  = d.dist;
+
+document.getElementById("pir").innerHTML=d.pir;
 
 document.getElementById("dist").innerHTML=
 d.dist+" cm";
@@ -104,6 +129,97 @@ d.angle+"°";
 
 });
 
+
+// RADAR
+function drawRadar(){
+
+ctx.clearRect(0,0,300,300);
+
+
+// círculos
+ctx.strokeStyle="#00ff88";
+
+for(let i=1;i<=4;i++){
+
+ctx.beginPath();
+
+ctx.arc(
+CX,
+CY,
+(R/4)*i,
+0,
+Math.PI*2
+);
+
+ctx.stroke();
+
+}
+
+
+// cruz
+ctx.beginPath();
+
+ctx.moveTo(CX-R,CY);
+ctx.lineTo(CX+R,CY);
+
+ctx.moveTo(CX,CY-R);
+ctx.lineTo(CX,CY+R);
+
+ctx.stroke();
+
+
+// sweep
+const rad =
+(lastAngle-90)*
+Math.PI/180;
+
+ctx.beginPath();
+
+ctx.moveTo(CX,CY);
+
+ctx.lineTo(
+CX + R*Math.cos(rad),
+CY + R*Math.sin(rad)
+);
+
+ctx.stroke();
+
+
+// eco
+if(lastDist>0 && lastDist<250){
+
+const echoR =
+(lastDist/250)*R;
+
+const ex =
+CX + echoR*Math.cos(rad);
+
+const ey =
+CY + echoR*Math.sin(rad);
+
+ctx.fillStyle="#ff3355";
+
+ctx.beginPath();
+
+ctx.arc(
+ex,
+ey,
+6,
+0,
+Math.PI*2
+);
+
+ctx.fill();
+
+}
+
+
+requestAnimationFrame(drawRadar);
+
+}
+
+
+drawRadar();
 
 </script>
 
