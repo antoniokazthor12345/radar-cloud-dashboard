@@ -7,6 +7,7 @@
 <title>SYSTEM RADAR CLOUD</title>
 
 <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
 <style>
 
@@ -22,7 +23,7 @@ text-align:center;
 border:1px solid #00ff88;
 padding:20px;
 margin:10px auto;
-max-width:500px;
+max-width:700px;
 }
 
 .big{
@@ -89,8 +90,20 @@ border-bottom:1px solid #003322;
 </div>
 
 
+<div class="card">
+
+<h2>TELEMETRÍA</h2>
+
+<canvas id="chart"></canvas>
+
+</div>
+
+
 <script>
 
+//==========================
+// RADAR
+//==========================
 const canvas =
 document.getElementById("radarCanvas");
 
@@ -108,6 +121,46 @@ let lastAngle = 0;
 let lastDist = 999;
 
 let lastAlert = 0;
+
+
+//==========================
+// CHART
+//==========================
+const labels = [];
+const distData = [];
+const lightData = [];
+
+const chart = new Chart(
+
+document.getElementById("chart"),
+
+{
+type:'line',
+
+data:{
+labels:labels,
+
+datasets:[
+
+{
+label:'Distancia',
+data:distData
+},
+
+{
+label:'Luz',
+data:lightData
+}
+
+]
+},
+
+options:{
+animation:false,
+responsive:true
+}
+
+});
 
 
 //==========================
@@ -204,7 +257,42 @@ document.getElementById("angle").innerHTML =
 d.angle+"°";
 
 
+//==========================
+// TELEMETRIA
+//==========================
+const time =
+new Date()
+.toLocaleTimeString();
+
+labels.push(time);
+
+distData.push(
+d.dist
+);
+
+lightData.push(
+d.light
+);
+
+
+if(
+labels.length>20
+){
+
+labels.shift();
+
+distData.shift();
+
+lightData.shift();
+
+}
+
+chart.update();
+
+
+//==========================
 // ALERTAS
+//==========================
 const alert =
 
 d.pir==1 ||
@@ -215,7 +303,6 @@ d.dist<=100
 );
 
 
-// evitar spam
 if(
 alert &&
 Date.now()-lastAlert>2000
