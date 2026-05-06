@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
+<title>SYSTEM RADAR CLOUD</title>
+
+<script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
+
+<style>
+
+body{
+background:#050f08;
+color:#00ff88;
+font-family:monospace;
+padding:30px;
+text-align:center;
+}
+
+.card{
+border:1px solid #00ff88;
+padding:20px;
+margin:10px auto;
+max-width:500px;
+}
+
+.big{
+font-size:30px;
+}
+
+</style>
+
+</head>
+<body>
+
+<h1>KAZTHOR RADAR CLOUD</h1>
+
+<div class="card">
+<div>PIR</div>
+<div id="pir" class="big">---</div>
+</div>
+
+<div class="card">
+<div>DISTANCIA</div>
+<div id="dist" class="big">---</div>
+</div>
+
+<div class="card">
+<div>LUZ</div>
+<div id="light" class="big">---</div>
+</div>
+
+<div class="card">
+<div>ANGULO</div>
+<div id="angle" class="big">---</div>
+</div>
+
+<script>
+
+
+const client = mqtt.connect(
+
+'wss://TU_CLUSTER.s1.eu.hivemq.cloud:8884/mqtt',
+
+{
+username:'esp32',
+password:'Esp32Cloude11',
+clientId:'web-'+Math.random()
+}
+
+);
+
+
+client.on('connect', ()=>{
+
+console.log("MQTT conectado");
+
+client.subscribe(
+'kazthor/radar/data'
+);
+
+});
+
+
+client.on('message',(topic,msg)=>{
+
+const d=
+JSON.parse(
+msg.toString()
+);
+
+document.getElementById("pir").innerHTML=
+d.pir;
+
+document.getElementById("dist").innerHTML=
+d.dist+" cm";
+
+document.getElementById("light").innerHTML=
+d.light;
+
+document.getElementById("angle").innerHTML=
+d.angle+"°";
+
+});
+
+
+</script>
+
+</body>
+</html>
