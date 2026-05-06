@@ -21,6 +21,11 @@ color:#00ff88;
 font-family:monospace;
 padding:30px;
 text-align:center;
+transition:0.3s;
+}
+
+.alert-mode{
+background:#220000;
 }
 
 .card{
@@ -28,6 +33,8 @@ border:1px solid #00ff88;
 padding:20px;
 margin:10px auto;
 max-width:700px;
+border-radius:10px;
+box-shadow:0 0 10px #00ff8822;
 }
 
 .big{
@@ -41,6 +48,8 @@ border-radius:50%;
 border:1px solid #00ff88;
 background:#031108;
 box-shadow:0 0 20px #00ff8844;
+max-width:100%;
+height:auto;
 }
 
 #eventLog{
@@ -55,6 +64,30 @@ padding:8px;
 border-bottom:1px solid #003322;
 }
 
+.status-online{
+color:#00ff88;
+}
+
+.status-alert{
+color:#ff3355;
+}
+
+@media(max-width:700px){
+
+body{
+padding:10px;
+}
+
+.card{
+width:95%;
+}
+
+.big{
+font-size:22px;
+}
+
+}
+
 </style>
 
 </head>
@@ -63,6 +96,14 @@ border-bottom:1px solid #003322;
 <h1>SYSTEM RADAR CLOUD</h1>
 
 <canvas id="radarCanvas" width="300" height="300"></canvas>
+
+
+<div class="card">
+<div>SISTEMA</div>
+<div id="status" class="big status-online">
+ONLINE
+</div>
+</div>
 
 
 <div class="card">
@@ -102,6 +143,15 @@ border-bottom:1px solid #003322;
 <canvas id="chart"></canvas>
 
 </div>
+
+
+<audio id="alarm">
+
+<source
+src="https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3"
+type="audio/mpeg">
+
+</audio>
 
 
 <script>
@@ -147,6 +197,9 @@ canvas.getContext("2d");
 const eventLog =
 document.getElementById("eventLog");
 
+const alarm =
+document.getElementById("alarm");
+
 const CX = 150;
 const CY = 150;
 const R  = 140;
@@ -178,20 +231,33 @@ datasets:[
 
 {
 label:'Distancia',
-data:distData
+data:distData,
+tension:0.3
 },
 
 {
 label:'Luz',
-data:lightData
+data:lightData,
+tension:0.3
 }
 
 ]
 },
 
 options:{
+
 animation:false,
-responsive:true
+
+responsive:true,
+
+scales:{
+
+y:{
+beginAtZero:true
+}
+
+}
+
 }
 
 });
@@ -251,6 +317,9 @@ client.on('connect', ()=>{
 
 console.log("MQTT conectado");
 
+document.getElementById("status").innerHTML =
+"ONLINE";
+
 addLog(
 "SISTEMA CLOUD ONLINE"
 );
@@ -258,6 +327,30 @@ addLog(
 client.subscribe(
 'kazthor/radar/data'
 );
+
+});
+
+
+client.on('reconnect', ()=>{
+
+document.getElementById("status").innerHTML =
+"RECONECTANDO";
+
+});
+
+
+client.on('offline', ()=>{
+
+document.getElementById("status").innerHTML =
+"OFFLINE";
+
+});
+
+
+client.on('error', ()=>{
+
+document.getElementById("status").innerHTML =
+"ERROR";
 
 });
 
@@ -365,15 +458,51 @@ d.dist<=100
 );
 
 
+// MODO ALERTA
+if(alert){
+
+document.body.classList.add(
+"alert-mode"
+);
+
+document.getElementById("status").innerHTML =
+"ALERTA";
+
+document.getElementById("status").className =
+"big status-alert";
+
+}else{
+
+document.body.classList.remove(
+"alert-mode"
+);
+
+document.getElementById("status").innerHTML =
+"ONLINE";
+
+document.getElementById("status").className =
+"big status-online";
+
+}
+
+
+// ALERTA CONTROLADA
 if(
 alert &&
-Date.now()-lastAlert>2000
+Date.now()-lastAlert>3000
 ){
 
 lastAlert =
 Date.now();
 
 
+// sonido
+alarm.currentTime = 0;
+
+alarm.play();
+
+
+// log
 addLog(
 
 "ALERTA → "+d.dist+" cm"
@@ -381,9 +510,7 @@ addLog(
 );
 
 
-//-------------------------
-// FIREBASE EVENTS
-//-------------------------
+// firebase events
 db.ref(
 "radar/events"
 ).push({
@@ -420,6 +547,7 @@ ctx.clearRect(
 );
 
 
+// GRID
 ctx.strokeStyle =
 "#00ff88";
 
@@ -449,6 +577,7 @@ ctx.stroke();
 }
 
 
+// CRUZ
 ctx.beginPath();
 
 ctx.moveTo(
@@ -474,6 +603,7 @@ CY+R
 ctx.stroke();
 
 
+// SWEEP
 const rad =
 
 (lastAngle-90)*
